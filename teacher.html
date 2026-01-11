@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>先生用 予約管理</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+
+<style>
+body { font-family: system-ui; margin:10px; }
+#calendar { max-width:900px; margin:auto; }
+.slot { border:1px solid #ddd; padding:10px; margin:5px 0; border-radius:8px; }
+.reserved { background:#ffe5e5; }
+.free { background:#e7f3ff; }
+button { padding:6px 10px; border:none; border-radius:5px; background:#ff4d4d; color:white; }
+</style>
+</head>
+<body>
+
+<h2>先生用 予約管理</h2>
+<div id="calendar"></div>
+
+<h3 id="dateTitle"></h3>
+<div id="list"></div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxXxGGIfnKPYkMdUXWTTeDk7mJa1dZSbCHCLgGMBV6KIzTEfy_WkIqDqlSk2wIX2OED/exec";
+
+let allData = [];
+
+fetch(GAS_URL)
+.then(r=>r.json())
+.then(data=>{
+  allData = data;
+
+  const days = [...new Set(data.map(e=>e.start.split("T")[0]))];
+
+  const bg = days.map(d=>({
+    start:d,
+    end:d,
+    display:"background",
+    backgroundColor:"#cce5ff"
+  }));
+
+  const calendar = new FullCalendar.Calendar(document.getElementById("calendar"),{
+    initialView:"dayGridMonth",
+    locale:"ja",
+    events:bg,
+    dateClick(info){
+      showDate(info.dateStr);
+    }
+  });
+
+  calendar.render();
+});
+
+function showDate(date){
+  document.getElementById("dateTitle").textContent = date;
+  const list = document.getElementById("list");
+  list.innerHTML="";
+
+  const day = allData.filter(e=>e.start.startsWith(date));
+
+  day.forEach(e=>{
+    const div = document.createElement("div");
+    div.className="slot "+(e.title==="予約済み"?"reserved":"free");
+
+    let html = `<b>${e.start.substr(11,5)} - ${e.end.substr(11,5)}</b><br>`;
+
+    if(e.title==="予約済み"){
+      html += `
+        氏名：${e.name}<br>
+        メール：${e.email}<br>
+        要望：${e.memo || ""}<br>
+        <button onclick="cancelSlot('${e.start}','${e.end}')">キャンセル</button>
+      `;
+    } else {
+      html += "（空き）";
+    }
+
+    div.innerHTML = html;
+    list.appendChild(div);
+  });
+}
+
+function cancelSlot(start,end){
+  if(!confirm("この予約をキャンセルしますか？")) return;
+
+  fetch(GAS_URL,{
+    method:"POST",
+    body:JSON.stringify({action:"cancel",start,end})
+  }).then(()=>{
+    location.reload();
+  });
+}
+</script>
+
+</body>
+</html>
