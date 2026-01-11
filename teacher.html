@@ -5,6 +5,18 @@
 <title>先生用 予約管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<script>
+  const correctPassword = "teacher123";  // ←好きなパスワードに変更してOK
+
+  const input = prompt("先生用ページです。パスワードを入力してください");
+
+  if (input !== correctPassword) {
+    document.body.innerHTML = "アクセスできません";
+    throw new Error("Wrong password");
+  }
+</script>
+
+
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
