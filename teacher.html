@@ -5,24 +5,12 @@
 <title>先生用 予約管理</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script>
-  const correctPassword = "teacher123";  // ←好きなパスワードに変更してOK
-
-  const input = prompt("先生用ページです。パスワードを入力してください");
-
-  if (input !== correctPassword) {
-    document.body.innerHTML = "アクセスできません";
-    throw new Error("Wrong password");
-  }
-</script>
-
-
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
 <style>
 body { font-family: system-ui; margin:10px; }
-#calendar { max-width:900px; margin:auto; }
+#calendar { max-width:900px; margin:auto; display:none; }
 .slot { border:1px solid #ddd; padding:10px; margin:5px 0; border-radius:8px; }
 .reserved { background:#ffe5e5; }
 .free { background:#e7f3ff; }
@@ -33,34 +21,44 @@ button { padding:6px 10px; border:none; border-radius:5px; background:#ff4d4d; c
 
 <h2>先生用 予約管理</h2>
 <div id="calendar"></div>
-
 <h3 id="dateTitle"></h3>
 <div id="list"></div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxXxGGIfnKPYkMdUXWTTeDk7mJa1dZSbCHCLgGMBV6KIzTEfy_WkIqDqlSk2wIX2OED/exec";
+const correctPassword = "teacher123"; // 先生用パスワード
+const GAS_URL = "https://script.google.com/macros/s/AKfycbyO1T8hLV5OA0E1CA-ooGwUkjbmRJGn_KHhoj5xE7yuOViQvOXvrggCYVSaFiJfO7A/exec";
 
 let allData = [];
 
-fetch(GAS_URL)
-.then(r=>r.json())
-.then(data=>{
-  allData = data;
+// ページ読み込み後にチェック
+window.addEventListener('DOMContentLoaded', async () => {
+  const input = prompt("先生用ページです。パスワードを入力してください");
 
-  const days = [...new Set(data.map(e=>e.start.split("T")[0]))];
+  if (input !== correctPassword) {
+    document.body.innerHTML = "<h2>アクセスできません</h2>";
+    return;
+  }
 
-  const bg = days.map(d=>({
-    start:d,
-    end:d,
-    display:"background",
-    backgroundColor:"#cce5ff"
+  // パスワード正しい場合だけカレンダー表示
+  document.getElementById('calendar').style.display = 'block';
+
+  // データ取得
+  const res = await fetch(GAS_URL);
+  allData = await res.json();
+
+  const days = [...new Set(allData.map(e => e.start.split("T")[0]))];
+  const bg = days.map(d => ({
+    start: d,
+    end: d,
+    display: "background",
+    backgroundColor: "#cce5ff"
   }));
 
-  const calendar = new FullCalendar.Calendar(document.getElementById("calendar"),{
-    initialView:"dayGridMonth",
-    locale:"ja",
-    events:bg,
-    dateClick(info){
+  const calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+    initialView: "dayGridMonth",
+    locale: "ja",
+    events: bg,
+    dateClick(info) {
       showDate(info.dateStr);
     }
   });
@@ -73,11 +71,11 @@ function showDate(date){
   const list = document.getElementById("list");
   list.innerHTML="";
 
-  const day = allData.filter(e=>e.start.startsWith(date));
+  const day = allData.filter(e => e.start.startsWith(date));
 
-  day.forEach(e=>{
+  day.forEach(e => {
     const div = document.createElement("div");
-    div.className="slot "+(e.title==="予約済み"?"reserved":"free");
+    div.className = "slot " + (e.title==="予約済み"?"reserved":"free");
 
     let html = `<b>${e.start.substr(11,5)} - ${e.end.substr(11,5)}</b><br>`;
 
@@ -100,10 +98,10 @@ function showDate(date){
 function cancelSlot(start,end){
   if(!confirm("この予約をキャンセルしますか？")) return;
 
-  fetch(GAS_URL,{
-    method:"POST",
-    body:JSON.stringify({action:"cancel",start,end})
-  }).then(()=>{
+  fetch(GAS_URL, {
+    method: "POST",
+    body: JSON.stringify({action:"cancel", start, end})
+  }).then(()=> {
     location.reload();
   });
 }
